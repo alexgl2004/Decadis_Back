@@ -3,14 +3,14 @@ var router = express.Router();
 const db = require('../db');
 
 /**
- * GET users listing.
+ * GET items listing.
 */ 
 router.get('/', function (req, res, next) {
 
   try {
 
     db.pool.query(
-      'SELECT * FROM users ORDER BY id ASC', 
+      'SELECT * FROM items ORDER BY id ASC', 
       (error, results) => {
         if (error) {
           throw error
@@ -27,18 +27,44 @@ router.get('/', function (req, res, next) {
 });
 
 /**
- * add user.
+ * GET positions listing.
+*/ 
+router.get('/positions', function (req, res, next) {
+
+  try {
+
+    db.pool.query(
+      'SELECT * FROM positions ORDER BY id ASC', 
+      (error, results) => {
+        if (error) {
+          throw error
+        }
+        res.status(200).json(results.rows)
+      }
+  )
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Internal Server Error (get USERs)');
+  }
+  
+});
+
+/**
+ * Create item.
 */ 
 router.post('/add', function(req, res, next) {
 
   try {
 
+    //[+] Add function to check rights for move //POST req.body.user_id
+
     db.pool.query(
-      'INSERT INTO users (firstame, lastname, email) VALUES ($1, $2, $3)', 
+      'INSERT INTO items (name, text, user_id) VALUES ($1, $2, $3)', 
       [
-        req.body.firstame,
-        req.body.lastname,
-        req.body.email
+        req.body.name,
+        req.body.text,
+        req.body.user_id
       ],
       (error, results) => {
         if (error) {
@@ -56,14 +82,16 @@ router.post('/add', function(req, res, next) {
 });
 
 /**
- * GET user.
+ * GET item.
 */
-router.get('/:id', function(req, res, next) {
+router.post('/:id', function(req, res, next) {
 
   try {
 
+    //[+] Add function to check rights for move //POST req.body.user_id
+
     db.pool.query(
-      "SELECT users.*, ac.action_ids FROM users, (SELECT array_to_string(array_agg(action_id), ',') as action_ids, user_id FROM actions_user WHERE user_id = $1 GROUP BY user_id) as ac WHERE id = $1",
+      "SELECT * FROM items WHERE id = $1",
       [
         req.params.id
       ], 
@@ -84,26 +112,18 @@ router.get('/:id', function(req, res, next) {
 });
 
 /**
- * edit user.
-*/ 
-router.post('/:id/edit', function(req, res, next) {
-
-  const actions_ids_lines = req.body.actions_id.map((elem)=>{
-    return '('+elem+','+req.params.id+')'
-  }).join(',')
+ * Move item.
+*/
+router.post('/:id/move', function(req, res, next) {
 
   try {
 
+    //[+] Add function to check rights for move //POST req.body.user_id
+
     db.pool.query(
-      'UPDATE users SET firstname = $1, lastname = $2, email = $3 WHERE id = $5;'+
-      'DELETE FROM actions_user WHERE user_id = $5;'+
-      'INSERT INTO actions_user (action_id,user_id) VALUES $4'
-      ,
+      'UPDATE items SET position_id = $1 WHERE id = $2',
       [
-        req.body.firstname, 
-        req.body.lastname, 
-        req.body.email,
-        actions_ids_lines,
+        req.body.position_id, 
         req.params.id
       ],
       (error, results) => {
@@ -122,13 +142,15 @@ router.post('/:id/edit', function(req, res, next) {
 });
 
 /**
- * delete user.
+ * detele item.
 */ 
-router.get('/:id/delete', function(req, res, next) {
+router.post('/:id/delete', function(req, res, next) {
 
   try {
 
-    db.pool.query('DELETE FROM users WHERE id = $1', 
+    //[+] Add function to check rights for delete //POST req.body.user_id
+
+    db.pool.query('DELETE FROM items WHERE id = $1', 
     [
       req.params.id
     ], (error, results) => {

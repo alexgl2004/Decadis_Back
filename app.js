@@ -1,13 +1,18 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+const createError = require('http-errors');
+const express = require('express');
+const db = require('./db');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
 
-var indexRouter = require('./routes/index');
-var usersRouter = require('./routes/users');
+const port = 3000;
 
-var app = express();
+const indexRouter = require('./routes/show/index');
+const usersRouter = require('./routes/users');
+const actionsRouter = require('./routes/actions');
+const itemsRouter = require('./routes/items');
+
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -21,6 +26,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
+app.use('/actions', actionsRouter);
+app.use('/items', itemsRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
@@ -38,4 +45,10 @@ app.use(function(err, req, res, next) {
   res.render('error');
 });
 
-module.exports = app;
+//module.exports = app;
+const server = app.listen(port, () =>
+  console.log(`Express app listening on port ${port}!`)
+);
+
+server.keepAliveTimeout = 120 * 1000;
+server.headersTimeout = 120 * 1000;
