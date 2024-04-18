@@ -5,7 +5,7 @@ const db = require('../db');
 /**
  * GET items listing.
 */ 
-router.get('/', function (req, res, next) {
+router.get('/', function (req, res) {
 
   try {
 
@@ -29,7 +29,7 @@ router.get('/', function (req, res, next) {
 /**
  * GET positions listing.
 */ 
-router.get('/positions', function (req, res, next) {
+router.get('/positions', function (req, res) {
 
   try {
 
@@ -53,26 +53,41 @@ router.get('/positions', function (req, res, next) {
 /**
  * Create item.
 */ 
-router.post('/add', function(req, res, next) {
+router.post('/add', function(req, res) {
 
   try {
 
-    //[+] Add function to check rights for move //POST req.body.user_id
-
     db.pool.query(
-      'INSERT INTO items (name, text, user_id) VALUES ($1, $2, $3)', 
+      "SELECT id FROM actions_user WHERE action_id = 2 AND user_id = $1",
       [
-        req.body.name,
-        req.body.text,
         req.body.user_id
-      ],
+      ], 
       (error, results) => {
+
         if (error) {
-        throw error
+          throw error
         }
-        response.status(201).json({id:results.insertId})
+
+        if(results.rows[0]){
+            db.pool.query(
+              'INSERT INTO items (name, text, user_id) VALUES ($1, $2, $3) RETURNING *', 
+              [
+                req.body.name,
+                req.body.text,
+                req.body.user_id
+              ],
+              (error, results) => {
+                if (error) {
+                throw error
+                }
+                res.status(201).json({id:results.rows[0].id})
+              }
+          )
+        }else{
+          res.status(200).json({'error':'NO access!'})
+        }
       }
-  )
+    )
 
   } catch (err) {
     console.error(err);
@@ -84,24 +99,40 @@ router.post('/add', function(req, res, next) {
 /**
  * GET item.
 */
-router.post('/:id', function(req, res, next) {
+router.post('/:id', function(req, res) {
 
   try {
 
-    //[+] Add function to check rights for move //POST req.body.user_id
-
     db.pool.query(
-      "SELECT * FROM items WHERE id = $1",
+      "SELECT id FROM actions_user WHERE action_id = 2 AND user_id = $1",
       [
-        req.params.id
+        req.body.user_id
       ], 
       (error, results) => {
-      if (error) {
-        throw error
+
+        if (error) {
+          throw error
+        }
+
+        if(results.rows[0]){
+          db.pool.query(
+            "SELECT * FROM items WHERE id = $1",
+            [
+              req.params.id
+            ], 
+            (error, results) => {
+            if (error) {
+              throw error
+            }
+              res.status(200).json(results.rows[0])
+            }
+          )
+        }else{
+          res.status(200).json({'error':'NO access!'})
+        }
+  
       }
-        res.status(200).json(results.rows[0])
-      }
-  )
+    )
 
   } catch (err) {
     console.error(err);
@@ -114,26 +145,41 @@ router.post('/:id', function(req, res, next) {
 /**
  * Move item.
 */
-router.post('/:id/move', function(req, res, next) {
+router.post('/:id/move', function(req, res) {
 
   try {
 
-    //[+] Add function to check rights for move //POST req.body.user_id
-
     db.pool.query(
-      'UPDATE items SET position_id = $1 WHERE id = $2',
+      "SELECT id FROM actions_user WHERE action_id = 2 AND user_id = $1",
       [
-        req.body.position_id, 
-        req.params.id
-      ],
+        req.body.user_id
+      ], 
       (error, results) => {
+        
         if (error) {
           throw error
         }
-        response.status(201).json({id:req.params.id})
+
+        if(results.rows[0]){
+          db.pool.query(
+            'UPDATE items SET position_id = $1 WHERE id = $2',
+            [
+              req.body.position_id, 
+              req.params.id
+            ],
+            (error, results) => {
+              if (error) {
+                throw error
+              }
+              res.status(201).json({id:req.params.id})
+            }
+          )
+        }else{
+          res.status(200).json({'error':'NO access!'})
+        }
+  
       }
     )
-
   } catch (err) {
     console.error(err);
     res.status(500).send('Internal Server Error (update USER)');
@@ -144,22 +190,38 @@ router.post('/:id/move', function(req, res, next) {
 /**
  * detele item.
 */ 
-router.post('/:id/delete', function(req, res, next) {
+router.post('/:id/delete', function(req, res) {
 
   try {
 
-    //[+] Add function to check rights for delete //POST req.body.user_id
+    db.pool.query(
+      "SELECT id FROM actions_user WHERE action_id = 2 AND user_id = $1",
+      [
+        req.body.user_id
+      ], 
+      (error, results) => {
+        
+        if (error) {
+          throw error
+        }
 
-    db.pool.query('DELETE FROM items WHERE id = $1', 
-    [
-      req.params.id
-    ], (error, results) => {
-      if (error) {
-        throw error
+        if(results.rows[0]){
+
+          db.pool.query('DELETE FROM items WHERE id = $1', 
+          [
+            req.params.id
+          ], (error, results) => {
+            if (error) {
+              throw error
+            }
+            res.status(201).json({id:req.params.id})
+          })
+        }else{
+          res.status(200).json({'error':'NO access!'})
+        }
+  
       }
-      response.status(201).json({id:req.params.id})
-    })
-
+    )
   } catch (err) {
     console.error(err);
     res.status(500).send('Internal Server Error (delete USER)');

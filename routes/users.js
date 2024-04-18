@@ -5,7 +5,7 @@ const db = require('../db');
 /**
  * GET users listing.
 */ 
-router.get('/', function (req, res, next) {
+router.get('/', function (req, res) {
 
   try {
 
@@ -29,14 +29,14 @@ router.get('/', function (req, res, next) {
 /**
  * add user.
 */ 
-router.post('/add', function(req, res, next) {
+router.post('/add', function(req, res) {
 
   try {
 
     db.pool.query(
-      'INSERT INTO users (firstame, lastname, email) VALUES ($1, $2, $3)', 
+      'INSERT INTO users (firstname, lastname, email) VALUES ($1, $2, $3) RETURNING *', 
       [
-        req.body.firstame,
+        req.body.firstname,
         req.body.lastname,
         req.body.email
       ],
@@ -44,7 +44,7 @@ router.post('/add', function(req, res, next) {
         if (error) {
         throw error
         }
-        response.status(201).json({id:results.insertId})
+        res.status(201).json({id:results.rows[0].id})
       }
   )
 
@@ -58,7 +58,7 @@ router.post('/add', function(req, res, next) {
 /**
  * GET user.
 */
-router.get('/:id', function(req, res, next) {
+router.get('/:id', function(req, res) {
 
   try {
 
@@ -86,31 +86,47 @@ router.get('/:id', function(req, res, next) {
 /**
  * edit user.
 */ 
-router.post('/:id/edit', function(req, res, next) {
+router.post('/:id/edit', function(req, res) {
 
-  const actions_ids_lines = req.body.actions_id.map((elem)=>{
-    return '('+elem+','+req.params.id+')'
-  }).join(',')
+  console.log(req.body, req.params)
 
   try {
 
     db.pool.query(
-      'UPDATE users SET firstname = $1, lastname = $2, email = $3 WHERE id = $5;'+
-      'DELETE FROM actions_user WHERE user_id = $5;'+
-      'INSERT INTO actions_user (action_id,user_id) VALUES $4'
-      ,
+      'UPDATE users SET firstname = $1, lastname = $2, email = $3 WHERE id = $4',
       [
         req.body.firstname, 
         req.body.lastname, 
         req.body.email,
-        actions_ids_lines,
         req.params.id
       ],
       (error, results) => {
         if (error) {
           throw error
         }
-        response.status(201).json({id:req.params.id})
+        db.pool.query(
+          'DELETE FROM actions_user WHERE user_id = $1',
+          [
+            req.params.id
+          ],
+          (error, results) => {
+            if (error) {
+              throw error
+            }
+            const actions_ids_lines = req.body.actions_id.map((elem)=>{
+              return '('+elem+','+req.params.id+')'
+            }).join(',')
+            db.pool.query(
+              'INSERT INTO actions_user (action_id,user_id) VALUES ' + actions_ids_lines,
+              (error, results) => {
+                if (error) {
+                  throw error
+                }
+                res.status(201).json({id:req.params.id})
+              }
+            )
+          }
+        )
       }
     )
 
@@ -124,7 +140,7 @@ router.post('/:id/edit', function(req, res, next) {
 /**
  * delete user.
 */ 
-router.get('/:id/delete', function(req, res, next) {
+router.get('/:id/delete', function(req, res) {
 
   try {
 
@@ -135,7 +151,7 @@ router.get('/:id/delete', function(req, res, next) {
       if (error) {
         throw error
       }
-      response.status(201).json({id:req.params.id})
+      res.status(201).json({id:req.params.id})
     })
 
   } catch (err) {

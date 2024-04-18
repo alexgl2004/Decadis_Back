@@ -5,7 +5,7 @@ const db = require('../db');
 /**
  * GET actions listing.
 */ 
-router.get('/', function (req, res, next) {
+router.get('/', function (req, res) {
 
   try {
 
@@ -29,7 +29,7 @@ router.get('/', function (req, res, next) {
 /**
  * GET actions of user listing.
 */ 
-router.get('/user/:id', function(req, res, next) {
+router.get('/user/:id', function(req, res) {
 
   try {
 
@@ -42,7 +42,7 @@ router.get('/user/:id', function(req, res, next) {
       if (error) {
         throw error
       }
-        res.status(200).json(results.rows[0])
+        res.status(200).json(results.rows)
       }
   )
 
