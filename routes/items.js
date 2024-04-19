@@ -70,7 +70,7 @@ router.post('/add', function(req, res) {
 
         if(results.rows[0]){
             db.pool.query(
-              'INSERT INTO items (name, text, user_id) VALUES ($1, $2, $3) RETURNING *', 
+              'INSERT INTO items (name, text, user_id, last_changed_by_id) VALUES ($1, $2, $3, $3) RETURNING *', 
               [
                 req.body.name,
                 req.body.text,
@@ -160,12 +160,16 @@ router.post('/:id/move', function(req, res) {
           throw error
         }
 
+        console.log(results)
+
         if(results.rows[0]){
+
           db.pool.query(
-            'UPDATE items SET position_id = $1 WHERE id = $2',
+            'UPDATE items SET position_id = $1, last_changed_by_id=$3 WHERE id = $2',
             [
               req.body.position_id, 
-              req.params.id
+              req.params.id,
+              req.body.user_id
             ],
             (error, results) => {
               if (error) {
