@@ -172,21 +172,29 @@ router.get('/:id/delete', function(req, res) {
 
   try {
 
-    db.pool.query('DELETE FROM users WHERE id = $1', 
+    db.pool.query('DELETE FROM items WHERE user_id = $1', 
     [
       req.params.id
     ], (error, results) => {
       if (error) {
         throw error
       }
-      db.pool.query('DELETE FROM actions_user WHERE user_id = $1', 
+      db.pool.query('DELETE FROM users WHERE id = $1', 
       [
         req.params.id
       ], (error, results) => {
         if (error) {
           throw error
         }
-        res.status(201).json({id:req.params.id})
+        db.pool.query('DELETE FROM actions_user WHERE user_id = $1', 
+        [
+          req.params.id
+        ], (error, results) => {
+          if (error) {
+            throw error
+          }
+          res.status(201).json({id:req.params.id})
+        })
       })
     })
 
