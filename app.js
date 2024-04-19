@@ -4,6 +4,7 @@ const db = require('./db');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
+var cors = require('cors');
 
 const port = 3000;
 
@@ -15,6 +16,7 @@ const itemsRouter = require('./routes/items');
 const app = express();
 
 // view engine setup
+app.use(cors())
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'jade');
 

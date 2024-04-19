@@ -10,12 +10,13 @@ router.get('/', function (req, res) {
   try {
 
     db.pool.query(
-      'SELECT * FROM users ORDER BY id ASC', 
+//      'SELECT * FROM users ORDER BY id ASC', 
+      "SELECT users.*, ac.action_ids FROM users, (SELECT array_to_string(array_agg(action_id), ',') as action_ids, user_id FROM actions_user GROUP BY user_id) as ac WHERE users.id=ac.user_id",
       (error, results) => {
         if (error) {
           throw error
         }
-        res.status(200).json(results.rows)
+        res.status(200).json({usersData:results.rows})
       }
   )
 
@@ -31,6 +32,8 @@ router.get('/', function (req, res) {
 */ 
 router.post('/add', function(req, res) {
 
+//  console.log(req.body)
+
   try {
 
     db.pool.query(
@@ -42,11 +45,32 @@ router.post('/add', function(req, res) {
       ],
       (error, results) => {
         if (error) {
-        throw error
+          throw error
         }
-        res.status(201).json({id:results.rows[0].id})
+
+        let created_id = results.rows[0].id
+
+        if(req.body.action_ids.length>0){   
+
+          const action_ids_lines = req.body.action_ids.map((elem)=>{
+            return '('+elem+','+created_id+')'
+          }).join(',')
+
+          db.pool.query(
+            'INSERT INTO actions_user (action_id,user_id) VALUES ' + action_ids_lines,
+            (error, results) => {
+              if (error) {
+                throw error
+              }
+              res.status(201).json({id:created_id})
+            }
+          )
+        }else{
+          res.status(201).json({id:created_id})
+        }
+        
       }
-  )
+   )
 
   } catch (err) {
     console.error(err);
@@ -88,7 +112,7 @@ router.get('/:id', function(req, res) {
 */ 
 router.post('/:id/edit', function(req, res) {
 
-  console.log(req.body, req.params)
+//  console.log(req.body, req.params)
 
   try {
 
@@ -113,18 +137,22 @@ router.post('/:id/edit', function(req, res) {
             if (error) {
               throw error
             }
-            const actions_ids_lines = req.body.actions_id.map((elem)=>{
-              return '('+elem+','+req.params.id+')'
-            }).join(',')
-            db.pool.query(
-              'INSERT INTO actions_user (action_id,user_id) VALUES ' + actions_ids_lines,
-              (error, results) => {
-                if (error) {
-                  throw error
+            if(req.body.action_ids.length>0){
+              const action_ids_lines = req.body.action_ids.map((elem)=>{
+                return '('+elem+','+req.params.id+')'
+              }).join(',')
+              db.pool.query(
+                'INSERT INTO actions_user (action_id,user_id) VALUES ' + action_ids_lines,
+                (error, results) => {
+                  if (error) {
+                    throw error
+                  }
+                  res.status(201).json({id:req.params.id})
                 }
-                res.status(201).json({id:req.params.id})
-              }
-            )
+              )
+            }else{
+              res.status(201).json({id:req.params.id})
+            }
           }
         )
       }
@@ -151,7 +179,15 @@ router.get('/:id/delete', function(req, res) {
       if (error) {
         throw error
       }
-      res.status(201).json({id:req.params.id})
+      db.pool.query('DELETE FROM actions_user WHERE user_id = $1', 
+      [
+        req.params.id
+      ], (error, results) => {
+        if (error) {
+          throw error
+        }
+        res.status(201).json({id:req.params.id})
+      })
     })
 
   } catch (err) {
